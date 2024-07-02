@@ -26,8 +26,8 @@ class CNN(torch.nn.Module):
 class RNN(torch.nn.Module):
     def __init__(self, embedding_size, hidden_layer_size, vocabulary_size, num_layers):
         super(RNN, self).__init__()
-        self.embed = torch.nn.Embedding(vocabulary_size, embedding_size) # convert input encodings to embeddings
-        self.lstm = torch.nn.LSTM(embedding_size,hidden_layer_size, num_layers) # pass through n = num_layers of lstm layers with each having num_neurons = hidden_layer_size
+        self.embed = torch.nn.Embedding(vocabulary_size, embedding_size) # convert input encodings (codes from words) to embeddings
+        self.lstm = torch.nn.LSTM(embedding_size,hidden_layer_size, num_layers) # pass through n = num_layers of lstm layers with each having num_neurons = shidden_layer_size
         self.fc = torch.nn.Linear(hidden_layer_size, vocabulary_size) # output size = vocabulary_size
         self.dropout = torch.nn.Dropout(0.5)
     
@@ -42,5 +42,28 @@ class RNN(torch.nn.Module):
     
 # join the components into one model
 class CNNtoRNN(torch.nn.Module):
-    def __init__(self):
-        pass
+    def __init__(self, embedding_size, hidden_layer_size, vocabulary_size, num_layers):
+        super(CNNtoRNN,self).__init__()
+        self.encoder_CNN = CNN(embedding_size)
+        self.decoder_RNN = RNN(embedding_size, hidden_layer_size, vocabulary_size, num_layers)
+    
+    def forward(self, input_images, captions):
+        features = self.encoder_CNN(input_images)
+        output = self.decoder_RNN(features, captions)
+        return output
+    
+    # when evaluating the function the next input would be prev output instead of ground truth
+    def caption_image(self, input_images, vocabulary, max_length_caption=50):
+        generated_caption = [] # stores codes for generated words uptil a certain step
+        with torch.no_grad():
+            features = self.encoder_CNN(input_images).unsqueeze(0) # adding a dim at indx 0 for batch num
+            cell_states = None # to store prev cell states of the LSTM - initialized to all 0
+            for _ in range(max_length_caption): # get 50 outputs (generated words) from model
+                hidden, cell_states = self.decoder_RNN.lstm(features,cell_states)
+                possible_options = self.decoder_RNN.fc(hidden.unsqueeze(0)) # add 1 at 0th indx to fix vector dims since we're passing just 1 img instead of batch of images
+                best_option = possible_options.argmax(1) # get the most probable next word
+                generated_caption.append(best_option.item())
+                features = self.decoder_RNN.embed(best_option).unsqueeze(0) # next input is current output
+                if vocabulary.itos[best_option.item()] == "<EOS>": # end of sentence token predicted, caption ended
+                    break
+        return [vocabulary.itos[indx] for indx in generated_caption] # convert codes back to words and return
