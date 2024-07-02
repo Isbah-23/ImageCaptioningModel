@@ -23,4 +23,22 @@ class Vocabulary:
     
     @staticmethod
     def tokenizer_eng(text):
-        return [tok.text.lower() for tok in spacy_eng.tokenizer(text)]
+        return [tok.text.lower() for tok in spacy_eng.tokenizer(text)] # returns list of lowercase tokens
+    
+    def build_vocabulary(self, sentence_list):
+        frequencies = {}
+        idx = 4 # start after the 3 because special tokens are till 3
+        for sentence in sentence_list:
+            for word in self.tokenizer_eng(sentence):
+                if word not in frequencies:
+                    frequencies[word] = 1
+                else:
+                    frequencies[word] += 1
+                if frequencies[word] == self.freq_threshold: # if word occurs a certain number of times add it to the language's vocab
+                    self.stoi[word] = idx
+                    self.itos[idx] = word
+                    idx += 1
+
+    def encode(self, text): # encode the text to code using the vocabulary
+        tokenized_text = self.tokenizer_eng(text)
+        return [self.stoi[token] if token in self.stoi else self.stoi['UNK'] for token in tokenized_text]
