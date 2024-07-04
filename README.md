@@ -1,5 +1,5 @@
 # ImageCaptioningModel
-## A CNN (VGG) + RNN (LSTM) model in pytorch that can do image captioning
+## A CNN (Inception) + RNN (LSTM) model in pytorch that can do image captioning
 datasets taken from:
 <br>
 karpathy dataset: https://www.kaggle.com/datasets/shtvkumar/karpathy-splits?resource=download 

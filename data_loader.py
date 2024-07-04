@@ -3,8 +3,6 @@ import pandas as pd
 import spacy # for tokenization
 import torch
 from PIL import Image
-import torch.utils
-import torch.utils.data
 import torchvision.transforms as transforms
 
 spacy_eng = spacy.load('en_core_web_sm') # english language model for tokenization, named entity recognition, POS tagging, parsing, word vector conversions
