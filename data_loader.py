@@ -13,7 +13,7 @@ class Vocabulary:
         # PAD - Padding element - usually 0s
         # SOS - start of sentence elem, before the first word in text
         # EOS - end of sentence elem, after last word in text
-        # UNK - unkknown elem, not present in vocabulary words - (words that model knows)
+        # UNK - unknown elem, not present in vocabulary words - (words that model knows)
         self.stoi = {'<PAD>':0, '<SOS>':1, '<EOS>':2, '<UNK>':3}
         self.itos = {0:'<PAD>', 1:'<SOS>', 2:'<EOS>', 3:'<UNK>'}
         self.freq_threshold = frequency_threshold
@@ -65,6 +65,17 @@ class RandomDataset(torch.utils.data.Dataset):
         encoded_caption.extend(self.vocabulary.encode(caption))
         encoded_caption.append(self.vocabulary.stoi['<EOS>'])
         return image, torch.tensor(encoded_caption)
+    
+class Collate: # custom dataloader collate (converts data into batches for processing)
+    def __init__(self, padding_index):
+        self.pad_indx = padding_index
+    def __call__(self, batch):
+        imgs = [input_sample[0].unsqueeze(0) for input_sample in batch] # get the first item(img) from the (img, caption) tuple of each input_sample in batch, add dim = 1 at indx 0
+        imgs = torch.cat(imgs, dim=0) # concat along added dim
+        captions = [input_sample[1] for input_sample in batch] # caption from each (img, caption) in batch
+        captions = torch.nn.utils.rnn.pad_sequence(captions, batch_first=False, padding_value=self.pad_indx)
+        return imgs, captions
+
 
 if __name__ == "__main__":
     rd = RandomDataset('random_dataset','image_captions.csv')
