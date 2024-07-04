@@ -3,6 +3,8 @@ import pandas as pd
 import spacy # for tokenization
 import torch
 from PIL import Image
+import torch.utils
+import torch.utils.data
 import torchvision.transforms as transforms
 
 spacy_eng = spacy.load('en_core_web_sm') # english language model for tokenization, named entity recognition, POS tagging, parsing, word vector conversions
@@ -41,7 +43,7 @@ class Vocabulary:
 
     def encode(self, text): # encode the text to code using the vocabulary
         tokenized_text = self.tokenizer_eng(text)
-        return [self.stoi[token] if token in self.stoi else self.stoi['UNK'] for token in tokenized_text]
+        return [self.stoi[token] if token in self.stoi else self.stoi['<UNK>'] for token in tokenized_text]
     
 class RandomDataset(torch.utils.data.Dataset):
     def __init__(self, root_directory, captions_file_name, transform=None, freq_threshold=5):
@@ -76,8 +78,20 @@ class Collate: # custom dataloader collate (converts data into batches for proce
         captions = torch.nn.utils.rnn.pad_sequence(captions, batch_first=False, padding_value=self.pad_indx)
         return imgs, captions
 
+def data_loader(folder, captions_filename, transform, batch_size=32, num_workers=8, shuffle=True, pin_memory=True):
+    dataset = RandomDataset(folder, captions_filename, transform)
+    pad_idx = dataset.vocabulary.stoi['<PAD>']
+    dataloader = torch.utils.data.DataLoader(dataset=dataset,batch_size=batch_size,num_workers=num_workers,shuffle=shuffle,pin_memory=pin_memory,collate_fn=Collate(pad_idx))
+    return dataloader, dataset
 
 if __name__ == "__main__":
-    rd = RandomDataset('random_dataset','image_captions.csv')
-    print(rd.df.head)
-    print(rd.__getitem__(3))
+    # rd = RandomDataset('random_dataset','image_captions.csv')
+    # print(rd.df.head)
+    # print(rd.__getitem__(3)) # check working upto Dataset class
+
+    transform = transforms.Compose([transforms.Resize((299,299)), transforms.ToTensor()])
+    dataloader, dataset = data_loader('random_dataset','image_captions.csv',transform)
+    for i,(imgs,captions) in enumerate(dataloader): # calls the call method in Collate to get mini-batches
+        print("Iteration:",i)
+        print(imgs.shape)
+        print(captions.shape)

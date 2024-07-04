@@ -1,6 +1,6 @@
 import torch
 import torchvision.transforms as transforms
-from data_loader import get_loader
+from data_loader import data_loader
 from model import CNNtoRNN
 
 def train():
